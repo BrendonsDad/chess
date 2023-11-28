@@ -10,6 +10,6 @@ public class ChessBoardAdapter implements JsonDeserializer<ChessBoard> {
     @Override
     public ChessBoard deserialize(JsonElement el, Type type, JsonDeserializationContext ctx) throws JsonParseException {
         // Ask the TA about this
-        return new Gson().fromJson(el, ChessBoardImpl.class);
+        return ctx.deserialize(el, ChessBoardImpl.class);
     }
 }

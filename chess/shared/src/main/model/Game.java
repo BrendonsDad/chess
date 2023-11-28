@@ -27,7 +27,7 @@ public class Game {
     /**
      * game holds the game implementation for our chess game.
      */
-    private transient ChessGameImpl game;
+    private ChessGameImpl game;
 
     /**
      * This Game constructor fills the fields for the Game model upon being called.

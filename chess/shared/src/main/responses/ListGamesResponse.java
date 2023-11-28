@@ -40,4 +40,9 @@ public class ListGamesResponse {
     public void setGames(ArrayList<Game> games) {
         this.games = games;
     }
+
+    //ADDED CODE, I HOPE THIS WORKS IF NOT ASK TA
+    public ArrayList<Game> getGames() {
+        return games;
+    }
 }

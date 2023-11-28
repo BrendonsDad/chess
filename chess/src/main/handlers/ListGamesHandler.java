@@ -33,7 +33,7 @@ public class ListGamesHandler  extends Handler{
                 // how do I update the status code? 200
                 response.status(200);
             }
-            else if (newResponse.getMessage() == "Error: unauthorized") {
+            else if (newResponse.getMessage().equals("Error: unauthorized")) {
                 // Set the code to 401
                 response.status(401);
             }

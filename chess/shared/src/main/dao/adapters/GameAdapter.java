@@ -10,6 +10,6 @@ public class GameAdapter implements JsonDeserializer<ChessGame> {
     @Override
     public ChessGame deserialize(JsonElement el, Type type, JsonDeserializationContext ctx) throws JsonParseException {
         // Ask the TA about this
-        return new Gson().fromJson(el, ChessGameImpl.class);
+        return ctx.deserialize(el, ChessGameImpl.class);
     }
 }
