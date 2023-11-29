@@ -7,14 +7,13 @@ import requests.*;
 import responses.*;
 import serverFac.ServerFacade;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import static ui.EscapeSequences.*;
 
-
-
 public class ClientUI {
-    private String serverUrl;
     private final ServerFacade server;
     private static String authToken;
     private State state = State.LOGGED_OUT;
@@ -23,7 +22,7 @@ public class ClientUI {
     private String chessSquareBackground = SET_BG_COLOR_DARK_GREEN;
 
     public ClientUI(String serverUrl) {
-        this.serverUrl = serverUrl;
+
         this.server = new ServerFacade(serverUrl);
     }
 
@@ -40,15 +39,37 @@ public class ClientUI {
                 case "join" -> joinGame(params);
                 case "observe" -> observeGame(params);
                 case "logout" -> logout();
+                case "clearall" -> clearAll();
                 case "quit" -> "quit";
                 default -> help();
             };
-        } catch (ResponseException ex) {
+        } catch (ResponseException | IOException ex) {
             return ex.getMessage();
         }
     }
 
-    public String register(String... params) throws ResponseException {
+    public String  clearAll() {
+        StringBuilder response = new StringBuilder();
+        try {
+            server.clearDataBase(authToken);
+            response.append("Database cleared\n");
+        }
+        catch (Exception e) {
+            response.append(e);
+        }
+
+        return response.toString();
+
+    }
+
+    private void throwIfNotSuccessful(String response) throws IOException, ResponseException {
+
+        if (response != null) {
+            throw new ResponseException(0,response);
+        }
+    }
+
+    public String register(String... params) throws ResponseException, IOException {
         int numOfParams = params.length;
         if (numOfParams == 3) {
             // Make a request object and send it to the facade
@@ -57,6 +78,7 @@ public class ClientUI {
             var email = params[2];
             RegisterRequest regRequest = new RegisterRequest(username, password, email);
             RegisterResponse response = this.server.register(regRequest);
+            throwIfNotSuccessful(response.getMessage());
 
             authToken = response.getAuthToken();
             state = State.LOGGED_IN;
@@ -67,7 +89,7 @@ public class ClientUI {
 
     }
 
-    public String login(String... params) throws ResponseException {
+    public String login(String... params) throws ResponseException, IOException {
         int numOfParams = params.length;
         if (numOfParams == 2) {
 
@@ -75,6 +97,8 @@ public class ClientUI {
             var password = params[1];
             LoginRequest logRequest = new LoginRequest(username, password);
             LogInResponse response = this.server.login(logRequest);
+
+            throwIfNotSuccessful(response.getMessage());
 
             authToken = response.getAuthToken();
 
@@ -84,7 +108,7 @@ public class ClientUI {
         throw new ResponseException(400, "Expected: <USERNAME> <PASSWORD>");
     }
 
-    public String createGame(String... params) throws ResponseException {
+    public String createGame(String... params) throws ResponseException, IOException {
         //1 param
         int numOfParams = params.length;
         if (numOfParams == 1) {
@@ -92,18 +116,24 @@ public class ClientUI {
             var gameName = params[0];
             CreateGameRequest createRequest = new CreateGameRequest(gameName);
             CreateGameResponse response = this.server.createGame(createRequest, authToken);
+
+            throwIfNotSuccessful(response.getMessage());
             return String.format("%s has been made with ID of %d", gameName, response.getgameID());
         }
         throw new ResponseException(400, "Expected: <NAME>");
     }
 
-    public String listGames() throws ResponseException {
+    public String listGames() throws ResponseException, IOException {
         //no param
         assertSignedIn();
         StringBuilder stringBuilder = new StringBuilder();
         ListGameRequest listRequest = new ListGameRequest(authToken);
         ListGamesResponse response = server.listGames(listRequest);
+
+        throwIfNotSuccessful(response.getMessage());
+
         ArrayList<Game> games = response.getGames();
+
         if (games.isEmpty()) {
             return "There are no active games\n";
         }
@@ -141,7 +171,7 @@ public class ClientUI {
         }
     }
 
-    public String joinGame(String... params) throws ResponseException {
+    public String joinGame(String... params) throws ResponseException, IOException {
         // >= 1
         int numOfParams = params.length;
         if (numOfParams >= 1) {
@@ -162,6 +192,8 @@ public class ClientUI {
             assertSignedIn();
             JoinGameResponse response = server.joinGame(joinRequest);
 
+            throwIfNotSuccessful(response.getMessage());
+
             state = State.IN_GAME_PLAYER;
 
             ListGameRequest listRequest = new ListGameRequest(authToken);
@@ -176,7 +208,7 @@ public class ClientUI {
         throw new ResponseException(400, "Expected: <ID> [WHITE|BLACK|<empty>]");
     }
 
-    public String observeGame(String... params) throws ResponseException {
+    public String observeGame(String... params) throws ResponseException, IOException {
         // 1 param
         if (params.length == 1) {
             assertSignedIn();
@@ -189,6 +221,8 @@ public class ClientUI {
             JoinGameRequest joinRequest = new JoinGameRequest(null,intID);
             joinRequest.setAuthToken(authToken);
             JoinGameResponse response = server.joinGame(joinRequest);
+
+            throwIfNotSuccessful(response.getMessage());
 
             ListGameRequest listRequest = new ListGameRequest(authToken);
             ListGamesResponse listResponse = server.listGames(listRequest);
@@ -358,11 +392,14 @@ public class ClientUI {
         }
     }
 
-    public String logout() throws ResponseException {
+    public String logout() throws ResponseException, IOException {
         // no param
         assertSignedIn();
         LogoutRequest logRequest = new LogoutRequest(authToken);
         LogoutResponse response = this.server.logout(logRequest);
+
+        throwIfNotSuccessful(response.getMessage());
+
         authToken = null;
         state = State.LOGGED_OUT;
         return "You have been logged out. \n\n\uD83D\uDC51 Welcome to 240 chess. Type Help to get started. \uD83D\uDC51 \n";

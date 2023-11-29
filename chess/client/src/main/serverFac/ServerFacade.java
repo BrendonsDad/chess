@@ -30,6 +30,32 @@ public class ServerFacade {
         return this.makeRequest("POST", path, request, RegisterResponse.class, null);
     }
 
+    public void clearDataBase(String authToken) throws URISyntaxException, IOException {
+        //DELETE
+        //path: /db
+        var path = "/db";
+        var method = "DELETE";
+
+        URL url = (new URI(serverUrl + path)).toURL();
+        HttpURLConnection http = (HttpURLConnection) url.openConnection();
+        http.setRequestMethod(method);
+        //What does this do? vv
+        http.setDoOutput(true);
+        if (authToken != null) {
+            http.setRequestProperty("Authorization", authToken);
+        }
+
+
+        http.connect();
+        try {
+            throwIfNotSuccessful(http);
+        } catch (ResponseException e) {
+            throw new RuntimeException(e);
+        }
+
+
+    }
+
     public LogInResponse login(LoginRequest request) throws ResponseException {
         //POST
         //path: /session
@@ -63,7 +89,33 @@ public class ServerFacade {
         //PUT
         //path: /game
         var path = "/game";
+
+
+
         return this.makeRequest("PUT", path, request, JoinGameResponse.class, request.getAuthToken());
+    }
+
+    public int getStatusCode(String method, String path, String authToken, Object request) throws ResponseException {
+        try {
+            URL url = (new URI(serverUrl + path)).toURL();
+            HttpURLConnection http = (HttpURLConnection) url.openConnection();
+            http.setRequestMethod(method);
+            //What does this do? vv
+            http.setDoOutput(true);
+            if (authToken != null) {
+                http.setRequestProperty("Authorization", authToken);
+            }
+
+            if (!method.equals("GET")) {
+                writeBody(request, http);
+            }
+
+            http.connect();
+            //throwIfNotSuccessful(http);
+            return http.getResponseCode();
+        } catch (Exception ex) {
+            throw new ResponseException(500, ex.getMessage());
+        }
     }
 
     private <T> T makeRequest(String method, String path, Object request, Class<T> responseClass, String authToken) throws ResponseException {
@@ -82,7 +134,7 @@ public class ServerFacade {
             }
 
             http.connect();
-            throwIfNotSuccessful(http);
+            //throwIfNotSuccessful(http);
             return readBody(http, responseClass);
         } catch (Exception ex) {
             throw new ResponseException(500, ex.getMessage());
